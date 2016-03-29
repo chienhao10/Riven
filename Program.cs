@@ -20,7 +20,7 @@ namespace Riven
         private const string IsFirstR = "RivenFengShuiEngine";
         private const string IsSecondR = "RivenIzunaBlade";
         public static SpellSlot Ignite;
-        private static int _qStack = 1;
+        private static int QStack = 1;
         public static bool CastR2;
         public static string AssemblyName = "Riven";
         private static Spell.Skillshot Q, R2, E, Flash;
@@ -107,7 +107,9 @@ namespace Riven
                     if (W.IsReady() && !Orbwalker.CanAutoAttack)
                     {
                         W.Cast();
+                        UseItems(t);
                     }
+
                 }
             }
 
@@ -237,12 +239,15 @@ namespace Riven
         public static bool doBurst { get { return Menu["doBurst"].Cast<KeyBind>().CurrentValue; } }
         public static bool jungleW { get { return Menu["jungleW"].Cast<CheckBox>().CurrentValue; } }
         public static bool jungleE { get { return Menu["jungleE"].Cast<CheckBox>().CurrentValue; } }
-        public static bool KillStealQ { get { return Menu["KillStealQ"].Cast<CheckBox>().CurrentValue; } }
+        public static bool KillStealQ { get { return Menu["KillStealQ"].Cast<CheckBox>().CurrentValue; } }    
+        public static bool SaveWrr { get { return Menu["SaveW"].Cast<CheckBox>().CurrentValue; } }
         public static bool KillStealW { get { return Menu["KillStealW"].Cast<CheckBox>().CurrentValue; } }
         public static bool KillStealE { get { return Menu["KillStealE"].Cast<CheckBox>().CurrentValue; } }
         public static bool KillStealR { get { return Menu["KillStealR"].Cast<CheckBox>().CurrentValue; } }
         public static bool Flee { get { return Menu["Flee"].Cast<CheckBox>().CurrentValue; } }
         public static bool Youmu { get { return Menu["youmu"].Cast<CheckBox>().CurrentValue; } }
+        public static bool UseItems_ { get { return Menu["UseItems"].Cast<CheckBox>().CurrentValue; } }
+
         public static int Q1Delay
         {
             get { return Menu["q1delay"].Cast<Slider>().CurrentValue; }
@@ -324,12 +329,12 @@ namespace Riven
             Menu.AddGroupLabel("Combo");
             Menu.Add("qgapclose", new Slider("Gaplose with {0}Q", 0, 0, 3));
             Menu.AddLabel("This one will enable gapclosing with Qs.");
-            Menu.AddLabel("0 means it turned off, 1 - it will use Q1, 2 - Q1 and Q2, 3 - Q1,Q2,Q3");
+            Menu.AddLabel("0 means is turned off, 1 - it will use Q1, 2 - Q1 and Q2, 3 - Q1,Q2,Q3");
             Menu.AddSeparator();
             Menu.Add("AlwaysR", new KeyBind("Forced R", false, KeyBind.BindTypes.PressToggle, 'G'));
             Menu.Add("ComboW", new CheckBox("Always use W"));
             Menu.AddLabel("R2 Modes : ");
-            Menu.Add("R2Mode", new Slider("0 : Killable | 1 : Max Damage | 2 : First Cast | 3 : Off", 0, 0, 3));
+            Menu.Add("R2Mode", new Slider("0 : Killable | 1 : Max Damage | 2 : ForceR2 | 3 : Off", 0, 0, 3));
             Menu.AddSeparator();
             Menu.AddLabel("E Modes : ");
             Menu.Add("ComboE", new Slider("0 : To Target | 1 : To Mouse", 0, 0, 1));
@@ -340,6 +345,8 @@ namespace Riven
             Menu.Add("q3delay", new Slider("Q3 animation reset delay {0}ms default 393", 393, 0, 500));
             Menu.Add("wdelay", new Slider("W animation reset delay {0}ms default 170", 170, 0, 500));
             Menu.Add("alwayscancel", new CheckBox("Cancel animation from manual Qs"));
+            Menu.Add("UseItems", new CheckBox("Use Items"));
+
 
             Menu.AddGroupLabel("Burst Combo");
             Menu.Add("doBurst", new KeyBind("Do Burst Combo", false, KeyBind.BindTypes.HoldActive, 'T'));
@@ -367,7 +374,7 @@ namespace Riven
 
             Menu.AddGroupLabel("Misc");
             Menu.Add("AutoW", new Slider("Auto W When X Enemy", 5, 0, 5));
-            Menu.Add("AutoShield", new CheckBox("Auto Cast E"));
+            Menu.Add("AutoShield", new CheckBox("Auto Cast E"));;
             Menu.Add("Winterrupt", new CheckBox("W interrupt"));
             Menu.Add("Shield", new CheckBox("Auto Cast E While LastHit"));
             Menu.AddSeparator();
@@ -375,6 +382,8 @@ namespace Riven
             Menu.Add("KillStealW", new CheckBox("Use W KS"));
             Menu.Add("KillStealE", new CheckBox("Use E KS"));
             Menu.Add("KillStealR", new CheckBox("Use R KS"));
+            Menu.Add("SaveW", new CheckBox("Dont W if target killable with AA", false));
+
             Menu.AddSeparator();
             Menu.Add("youmu", new CheckBox("Use Youmys When E", false));
 
@@ -1133,7 +1142,7 @@ namespace Riven
 
             if (t != null && t.IsValidTarget())
             {
-                if (_qStack == 2)
+                if (QStack == 2)
                 {
                     if (E.IsReady())
                     {
@@ -1148,7 +1157,7 @@ namespace Riven
 
                 if (W.IsReady())
                 {
-                    if (t.IsValidTarget(W.Range) && _qStack == 1)
+                    if (t.IsValidTarget(W.Range) && QStack == 1)
                     {
                         W.Cast();
                     }
@@ -1156,7 +1165,7 @@ namespace Riven
 
                 if (Q.IsReady())
                 {
-                    if (_qStack == 0)
+                    if (QStack == 0)
                     {
                         if (t.IsValidTarget(myHero.AttackRange + myHero.BoundingRadius + 150))
                         {
@@ -1170,6 +1179,8 @@ namespace Riven
 
         private static void KillStealLogic()
         {
+
+            var SaveW = SaveWrr;
             foreach (var e in EntityManager.Heroes.Enemies.Where(e => !e.IsZombie && !e.HasBuff("KindredrNoDeathBuff") && !e.HasBuff("Undying Rage") && !e.HasBuff("JudicatorIntervention") && e.IsValidTarget()))
             {
                 if (Q.IsReady() && KillStealQ)
@@ -1185,8 +1196,17 @@ namespace Riven
                             Q.Cast(e.Position);
                     }
                 }
+                if (e != null)
+                {
+                    if (KillStealW)
+                    {
+                        if (SaveW && ObjectManager.Player.GetAutoAttackDamage(e) > e.TotalShieldHealth()
+                            && e.IsValidTarget(ObjectManager.Player.GetAutoAttackRange()))
+                        {
+                            return;
+                        }
 
-                if (W.IsReady() && KillStealW)
+                        if (W.IsReady() && KillStealW)
                 {
                     if (e.IsValidTarget(W.Range) && myHero.GetSpellDamage(e, SpellSlot.W) > e.Health + e.HPRegenRate)
                     {
@@ -1194,7 +1214,11 @@ namespace Riven
                     }
                 }
 
-                if (R1.IsReady() && KillStealR)
+                if (e != null)
+                {
+                    if (KillStealR)
+                    {                     
+                        if (R1.IsReady() && KillStealR)
                 {
                     if (myHero.HasBuff("RivenWindScarReady"))
                     {
@@ -1222,7 +1246,42 @@ namespace Riven
                 }
             }
         }
+            }
+                }
+            }
+        }
 
+  
+        internal static void UseItems(Obj_AI_Base target)
+        {
+            var KhazixServerPosition = myHero.ServerPosition.To2D();
+            var targetServerPosition = target.ServerPosition.To2D();
+
+            if (Item.CanUseItem(ItemId.Ravenous_Hydra_Melee_Only) && 400 > myHero.Distance(target))
+            {
+                Item.UseItem(ItemId.Ravenous_Hydra_Melee_Only);
+            }
+            if (Item.CanUseItem(ItemId.Tiamat_Melee_Only) && 400 > myHero.Distance(target))
+            {
+                Item.UseItem(ItemId.Tiamat_Melee_Only);
+            }
+            if (Item.CanUseItem(ItemId.Titanic_Hydra) && 400 > myHero.Distance(target))
+            {
+                Item.UseItem(ItemId.Titanic_Hydra);
+            }
+            if (Item.CanUseItem(ItemId.Blade_of_the_Ruined_King) && 550 > myHero.Distance(target))
+            {
+                Item.UseItem(ItemId.Blade_of_the_Ruined_King);
+            }
+            if (Item.CanUseItem(ItemId.Youmuus_Ghostblade) && myHero.GetAutoAttackRange() > myHero.Distance(target))
+            {
+                Item.UseItem(ItemId.Youmuus_Ghostblade);
+            }
+            if (Item.CanUseItem(ItemId.Bilgewater_Cutlass) && 550 > myHero.Distance(target))
+            {
+                Item.UseItem(ItemId.Bilgewater_Cutlass);
+            }
+        }
 
         private static void Drawing_OnDraw(EventArgs args)
         {
@@ -1296,9 +1355,11 @@ namespace Riven
         {
 
             if (lastQ + 3650 < Core.GameTickCount)
-                QNum = 0;
+
+            
             KillStealLogic();
             AutoUseW();
+;
             if (doBurst) BurstLogic();
             if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo)) ComboLogic();
             if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Harass)) QuickHarassLogic();
@@ -1307,6 +1368,7 @@ namespace Riven
                 FleeLogic();
                 CastYoumoo();
             }
+ 
 
             if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear) || Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.JungleClear))
             {
@@ -1314,6 +1376,11 @@ namespace Riven
                 JungleClearLogic();
             }
 
+            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee)) FleeLogic();
+            
         }
+
+
+
     }
 }
