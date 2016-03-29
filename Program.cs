@@ -272,7 +272,10 @@ namespace Riven
         {
             get { return Menu["DrawCB"].Cast<CheckBox>().CurrentValue; }
         }
-
+        private static bool DrawBT
+        {
+            get { return Menu["DrawBT"].Cast<CheckBox>().CurrentValue; }
+        }
         private static bool DrawAlwaysR
         {
             get { return Menu["DrawAlwaysR"].Cast<CheckBox>().CurrentValue; }
@@ -386,7 +389,7 @@ namespace Riven
             Menu.Add("DrawAlwaysR", new CheckBox("Draw Always R Status"));
             Menu.Add("Dind", new CheckBox("Draw Damage Indicator"));
             Menu.Add("DrawCB", new CheckBox("Draw Combo Engage Range"));
-            Menu.Add("DrawHS", new CheckBox("Draw Harass Engage Range"));
+            Menu.Add("DrawBT", new CheckBox("Draw Burst Engage Range"));
             Menu.AddSeparator();
 
 
@@ -1244,20 +1247,22 @@ namespace Riven
             var green = Color.LimeGreen;
             var red = Color.IndianRed;
             if (DrawCB)
-                Circle.Draw(E.IsReady() ? green : red, 250 + myHero.AttackRange + 70, ObjectManager.Player.Position);
-          //    if (DrawBT && Flash.Range)
-           //       Circle.Draw(R1.IsReady() && Flash.IsReady ? green : red, 800, ObjectManager.Player.Position);
-            if (DrawFH)
-                Circle.Draw(E.IsReady() && Q.IsReady() ? green : red, 450 + myHero.AttackRange + 70,
-                    ObjectManager.Player.Position);       
-            if (DrawAlwaysR)
+               Circle.Draw(E.IsReady() ? green : red, 250 + myHero.AttackRange + 70, ObjectManager.Player.Position);
+           if (DrawBT && Flash != null && Flash.Slot != SpellSlot.Unknown)
+                Circle.Draw(R1.IsReady() ? green : red, 800, ObjectManager.Player.Position);
+       //     if (DrawFH)
+             //   Circle.Draw(E.IsReady() && Q.IsReady() ? green : red, 450 + myHero.AttackRange + 70,
+              //      ObjectManager.Player.Position);
+      //      if (DrawHS)
+       //         Circle.Draw(Q.IsReady() && W.IsReady() ? green : red, 400, ObjectManager.Player.Position);
+           if (DrawAlwaysR)
             {
-                Drawing.DrawText(heropos.X - 40, heropos.Y + 20, System.Drawing.Color.WhiteSmoke, "ForceR");
+                Drawing.DrawText(heropos.X - 40, heropos.Y + 20, System.Drawing.Color.FloralWhite, "ForceR");
                 Drawing.DrawText(heropos.X + 10, heropos.Y + 20,
                     AlwaysR ? System.Drawing.Color.LimeGreen : System.Drawing.Color.Red,
                     AlwaysR ? "On" : "Off");
             }
-
+         
             //Drawing.DrawText(heropos.X - 40, heropos.Y + 43, System.Drawing.Color.DodgerBlue, "Can AA:");
             //Drawing.DrawText(heropos.X + 50, heropos.Y + 43,
             //        Orbwalker.CanAutoAttack ? System.Drawing.Color.LimeGreen : System.Drawing.Color.Red,
